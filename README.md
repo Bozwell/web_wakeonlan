@@ -15,6 +15,3 @@
 ### hardware
 * Raspberry Pi Zero 2W
 
-
-### TODO
-- OTP 재설정 시도시 검증방법?
