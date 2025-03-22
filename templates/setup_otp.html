@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP 설정 - 데스크톱 전원켜기</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        p {
+            margin-bottom: 20px;
+            color: #555;
+            line-height: 1.5;
+        }
+        .qr-code {
+            margin: 20px 0;
+        }
+        .qr-code img {
+            max-width: 200px;
+            height: auto;
+        }
+        .otp-form {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn:hover {
+            background-color: #0b7dda;
+        }
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .steps ol {
+            padding-left: 20px;
+        }
+        .steps li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OTP 설정</h1>
+        
+        <p>안전한 전원 제어를 위해 Google Authenticator 앱을 사용한 2단계 인증을 설정합니다.</p>
+        
+        <div class="steps">
+            <ol>
+                <li>Google Authenticator 앱을 스마트폰에 설치하세요. <br>
+                    <small>(또는 Authy, Microsoft Authenticator 등 TOTP 호환 앱)</small>
+                </li>
+                <li>앱에서 QR 코드를 스캔하세요.</li>
+                <li>앱에 표시된 6자리 코드를 아래에 입력하세요.</li>
+            </ol>
+        </div>
+        
+        <div class="qr-code">
+            <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+        </div>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <form class="otp-form" method="post" action="/setup-otp">
+            <input type="text" name="otp_code" placeholder="6자리 인증 코드" pattern="[0-9]{6}" required>
+            <button type="submit" class="btn">인증 완료</button>
+        </form>
+    </div>
+</body>
+</html>
+        

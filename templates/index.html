@@ -1,0 +1,399 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데스크톱 전원켜기</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin: 20px 0;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .labels {
+            display: flex;
+            justify-content: space-between;
+            width: 100px;
+            margin: 10px auto;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 300px;
+            text-align: center;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0b7dda;
+        }
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+        .reset-link {
+            display: block;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+            text-decoration: none;
+        }
+        .reset-link:hover {
+            text-decoration: underline;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-on {
+            background-color: #28a745;
+        }
+        .status-off {
+            background-color: #dc3545;
+        }
+        .status-text {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #2196F3;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+        .refresh-btn:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>데스크톱 전원켜기</h1>
+        
+        <div class="status-text">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">상태 확인 중...</span>
+            <button class="refresh-btn" id="refreshStatus">
+                <i>↻</i> 새로고침
+            </button>
+        </div>
+        
+        <div class="power-control">
+            <div class="labels">
+                <span>OFF</span>
+                <span>ON</span>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="powerToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        
+        <div id="statusMessage" class="message"></div>
+        
+        <a href="/reset-otp" class="reset-link">OTP 재설정</a>
+    </div>
+
+    <!-- OTP 인증 모달 -->
+    <div id="otpModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>OTP 인증</h2>
+            <p>Google Authenticator 앱에서 OTP 코드를 입력하세요.</p>
+            <input type="text" id="otpCode" placeholder="6자리 코드 입력">
+            <button id="verifyOtp" class="btn">확인</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const powerToggle = document.getElementById('powerToggle');
+            const statusMessage = document.getElementById('statusMessage');
+            const otpModal = document.getElementById('otpModal');
+            const closeBtn = document.querySelector('.close');
+            const verifyOtpBtn = document.getElementById('verifyOtp');
+            const otpCodeInput = document.getElementById('otpCode');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const refreshStatusBtn = document.getElementById('refreshStatus');
+            
+            let pendingState = null;
+            let currentState = '{{ power_state }}';  // 서버에서 전달한 초기 상태
+            
+            // 초기 상태 설정
+            updateStatusUI(currentState);
+            
+            // 토글 스위치 초기 상태 설정
+            powerToggle.checked = currentState === 'on';
+            
+            // 새로고침 버튼 클릭
+            refreshStatusBtn.addEventListener('click', function() {
+                fetchPowerState();
+            });
+            
+            // 상태 주기적으로 업데이트 (30초마다)
+            setInterval(fetchPowerState, 30000);
+            
+            // 전원 상태 가져오기
+            function fetchPowerState() {
+                statusText.textContent = "상태 확인 중...";
+                
+                fetch('/power-state')
+                    .then(response => response.json())
+                    .then(data => {
+                        currentState = data.power_state;
+                        updateStatusUI(currentState);
+                        
+                        // 토글 스위치도 업데이트 (이벤트 트리거 없이)
+                        if ((currentState === 'on') !== powerToggle.checked) {
+                            powerToggle.checked = currentState === 'on';
+                        }
+                    })
+                    .catch(error => {
+                        statusText.textContent = "상태 확인 오류";
+                        console.error("상태 확인 오류:", error);
+                    });
+            }
+            
+            // 상태 표시 UI 업데이트
+            function updateStatusUI(state) {
+                if (state === 'on') {
+                    statusIndicator.className = 'status-indicator status-on';
+                    statusText.textContent = "데스크톱 전원: 켜짐";
+                } else {
+                    statusIndicator.className = 'status-indicator status-off';
+                    statusText.textContent = "데스크톱 전원: 꺼짐";
+                }
+            }
+            
+            // 스위치 토글 이벤트
+            powerToggle.addEventListener('change', function() {
+                const newState = this.checked ? 'on' : 'off';
+                
+                // 현재 상태와 같으면 무시
+                if (newState === currentState) {
+                    return;
+                }
+                
+                pendingState = newState;
+                otpModal.style.display = 'block';
+                otpCodeInput.focus();
+            });
+            
+            // 모달 닫기
+            closeBtn.addEventListener('click', function() {
+                otpModal.style.display = 'none';
+                // 토글 스위치를 현재 상태로 복구
+                powerToggle.checked = currentState === 'on';
+                pendingState = null;
+            });
+            
+            // OTP 확인 버튼 클릭
+            verifyOtpBtn.addEventListener('click', function() {
+                const otpCode = otpCodeInput.value.trim();
+                
+                if (!otpCode) {
+                    alert('OTP 코드를 입력해주세요');
+                    return;
+                }
+                
+                // 전원 상태 변경 요청
+                fetch('/power', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        state: pendingState,
+                        otp_code: otpCode
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    otpModal.style.display = 'none';
+                    
+                    statusMessage.textContent = data.message;
+                    statusMessage.className = `message ${data.status === 'success' ? 'success' : 'error'}`;
+                    statusMessage.style.display = 'block';
+                    
+                    // 성공 시 상태 업데이트
+                    if (data.status === 'success') {
+                        if (pendingState === 'off') {
+                            // 종료 명령 후 약간의 지연 후 상태 확인
+                            setTimeout(fetchPowerState, 3000);
+                        } else {
+                            // 켜기 명령 후 좀 더 긴 지연 후 상태 확인 (부팅 시간 고려)
+                            setTimeout(fetchPowerState, 30000);
+                            // 중간에 한 번 더 확인
+                            setTimeout(fetchPowerState, 10000);
+                        }
+                    } else {
+                        // 실패 시 토글 스위치 원상태로 복구
+                        powerToggle.checked = currentState === 'on';
+                    }
+                    
+                    // OTP 코드 입력 필드 초기화
+                    otpCodeInput.value = '';
+                    pendingState = null;
+                })
+                .catch(error => {
+                    otpModal.style.display = 'none';
+                    statusMessage.textContent = '요청 처리 중 오류가 발생했습니다: ' + error;
+                    statusMessage.className = 'message error';
+                    statusMessage.style.display = 'block';
+                    
+                    // 토글 스위치 원상태로 복구
+                    powerToggle.checked = currentState === 'on';
+                    
+                    otpCodeInput.value = '';
+                    pendingState = null;
+                });
+            });
+            
+            // 엔터 키로 OTP 확인
+            otpCodeInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    verifyOtpBtn.click();
+                }
+            });
+            
+            // 모달 바깥 영역 클릭 시 닫기
+            window.addEventListener('click', function(event) {
+                if (event.target === otpModal) {
+                    closeBtn.click();
+                }
+            });
+            
+            // 오류 메시지 5초 후 자동 숨김
+            function hideMessages() {
+                setTimeout(function() {
+                    if (statusMessage.style.display === 'block') {
+                        statusMessage.style.display = 'none';
+                    }
+                }, 5000);
+            }
+            
+            // 메시지 자동 숨김 설정
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    // 페이지가 다시 보일 때 상태 갱신
+                    fetchPowerState();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+        
